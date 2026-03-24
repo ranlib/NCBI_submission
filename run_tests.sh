@@ -14,7 +14,12 @@ TOSTADAS-Metadata-Parser.py SampleSheet.csv
 # 2) NoLaneSplitting = true
 # 3) Paired-end sequencing
 # 4) One FASTQ per read per sample
-add_fastq_information.py -i Metadata-Output/reportable_WWPilot_2026-03-04_AW.csv -o reportable_WWPilot_2026-03-04_AW.xlsx -y config_list.yaml -s SampleSheet.csv
+FASTQ_DIR=$HOME/Analysis/Covid19/CovidSeq/WWPilot_2026-03-04_AW/untrimmed
+add_fastq_information.py -i Metadata-Output/reportable_WWPilot_2026-03-04_AW.csv \
+			 -o reportable_WWPilot_2026-03-04_AW.xlsx \
+			 -y config_list.yaml\
+			 -s SampleSheet.csv \
+			 -d $FASTQ_DIR
 
 exit 0
 

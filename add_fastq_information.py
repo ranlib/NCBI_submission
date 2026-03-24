@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-
 import argparse
 import pandas as pd
 import yaml
+import os
 
 
 def load_config(config_path):
@@ -11,9 +11,6 @@ def load_config(config_path):
 
 
 def parse_sample_sheet(sample_sheet_path):
-    """
-    Extract records from [BCLConvert_Data] section.
-    """
     data_section = False
     headers = []
     records = []
@@ -40,16 +37,7 @@ def parse_sample_sheet(sample_sheet_path):
     return records
 
 
-def generate_fastq_map(records):
-    """
-    Returns dict:
-    {
-        sample_id: {
-            "R1": filename,
-            "R2": filename
-        }
-    }
-    """
+def generate_fastq_map(records, fastq_dir=None):
     fastq_map = {}
 
     for i, record in enumerate(records, start=1):
@@ -57,6 +45,11 @@ def generate_fastq_map(records):
 
         r1 = f"{sample_id}_S{i}_R1_001.fastq.gz"
         r2 = f"{sample_id}_S{i}_R2_001.fastq.gz"
+
+        # Prepend directory if provided
+        if fastq_dir:
+            r1 = os.path.join(fastq_dir, r1)
+            r2 = os.path.join(fastq_dir, r2)
 
         fastq_map[sample_id] = {
             "R1": r1,
@@ -74,6 +67,11 @@ def main():
     parser.add_argument("-o", "--output_excel", required=True)
     parser.add_argument("-y", "--yaml_config", required=True)
     parser.add_argument("-s", "--sample_sheet", required=True)
+    parser.add_argument(
+        "-d", "--fastq_dir",
+        required=False,
+        help="Directory path where FASTQ files are located"
+    )
 
     args = parser.parse_args()
 
@@ -98,12 +96,13 @@ def main():
 
     # Set file_location
     df["file_location"] = "local"
-    # set library layout
+
+    # Set library layout
     df["illumina_library_layout"] = "paired"
-    
+
     # Parse sample sheet
     records = parse_sample_sheet(args.sample_sheet)
-    fastq_map = generate_fastq_map(records)
+    fastq_map = generate_fastq_map(records, fastq_dir=args.fastq_dir)
 
     # Map FASTQ names into dataframe
     for idx, row in df.iterrows():
@@ -112,10 +111,6 @@ def main():
         if sample_id in fastq_map:
             df.at[idx, "illumina_sra_file_path_1"] = fastq_map[sample_id]["R1"]
             df.at[idx, "illumina_sra_file_path_2"] = fastq_map[sample_id]["R2"]
-        else:
-            # Optional: leave as None or flag missing
-            df.at[idx, "illumina_sra_file_path_1"] = None
-            df.at[idx, "illumina_sra_file_path_2"] = None
 
     # Write Excel
     df.to_excel(args.output_excel, index=False)
